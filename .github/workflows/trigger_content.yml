@@ -45,19 +45,22 @@ jobs:
           import datetime
           import sys
 
+          # 关键修复：strip() 去除 Secret 末尾可能的换行符
+          api_key = os.environ['DIFY_API_KEY'].strip()
+          base_url = os.environ['DIFY_BASE_URL'].strip()
+
           input_topic = os.environ.get('INPUT_TOPIC', '')
 
           if input_topic:
-              topic = input_topic
-              content_type = os.environ.get('INPUT_CONTENT_TYPE', '技术')
-              keywords = os.environ.get('INPUT_KEYWORDS', '')
-              publish_date = os.environ.get('INPUT_PUBLISH_DATE', '')
+              topic = input_topic.strip()
+              content_type = os.environ.get('INPUT_CONTENT_TYPE', '技术').strip()
+              keywords = os.environ.get('INPUT_KEYWORDS', '').strip()
+              publish_date = os.environ.get('INPUT_PUBLISH_DATE', '').strip()
               print(f"手动触发模式: {topic}")
           else:
               print("定时触发模式，读取schedule.json...")
               with open('schedule.json') as f:
                   data = json.load(f)
-              day_map = {'Monday':'Monday','Tuesday':'Tuesday','Wednesday':'Wednesday','Thursday':'Thursday','Friday':'Friday','Saturday':'Saturday','Sunday':'Sunday'}
               today = datetime.datetime.now().strftime('%A')
               topic = content_type = keywords = None
               for item in data['weekly_schedule']:
@@ -75,26 +78,42 @@ jobs:
           if not publish_date:
               publish_date = (datetime.datetime.now() + datetime.timedelta(days=3)).strftime('%Y-%m-%d')
 
-          api_key = os.environ['DIFY_API_KEY']
-          base_url = os.environ['DIFY_BASE_URL']
           url = base_url.rstrip('/') + '/v1/workflows/run'
-          headers = {'Authorization': 'Bearer ' + api_key, 'Content-Type': 'application/json'}
+          headers = {
+              'Authorization': 'Bearer ' + api_key,
+              'Content-Type': 'application/json',
+          }
           payload = {
-              'inputs': {'topic': topic, 'content_type': content_type, 'keywords': keywords, 'publish_date': publish_date},
+              'inputs': {
+                  'topic': topic,
+                  'content_type': content_type,
+                  'keywords': keywords,
+                  'publish_date': publish_date,
+              },
               'response_mode': 'blocking',
-              'user': 'github-actions'
+              'user': 'github-actions',
           }
           print(f"请求URL: {url}")
-          req = urllib.request.Request(url, json.dumps(payload).encode('utf-8'), headers, method='POST')
+          print(f"主题: {topic} | 类型: {content_type}")
+          req = urllib.request.Request(
+              url,
+              json.dumps(payload).encode('utf-8'),
+              headers,
+              method='POST'
+          )
           try:
               with urllib.request.urlopen(req, timeout=120) as response:
                   body = response.read().decode('utf-8')
-                  print(f"响应: {body}")
+                  print(f"✅ Dify响应: {body[:300]}")
                   result = json.loads(body)
                   if result.get('result') == 'success' or 'workflow_run_id' in result:
                       print('✅ Dify工作流触发成功！')
                   else:
-                      print('⚠️ 响应异常')
+                      print('⚠️ 响应状态异常，请检查Dify日志')
+          except urllib.error.HTTPError as e:
+              err_body = e.read().decode('utf-8')
+              print(f'❌ HTTP错误 {e.code}: {err_body}')
+              sys.exit(1)
           except Exception as e:
               print(f'❌ 错误: {e}')
               sys.exit(1)
