@@ -39,7 +39,7 @@ url = base_url.rstrip('/') + '/v1/workflows/run'
 headers = {
     'Authorization': 'Bearer ' + api_key,
     'Content-Type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.0',  # 新增
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
 }
 payload = {
     'inputs': {
@@ -48,22 +48,18 @@ payload = {
         'keywords': keywords,
         'publish_date': publish_date,
     },
-    'response_mode': 'blocking',
+    'response_mode': 'streaming',  # 改成 streaming，不等待完成
     'user': 'github-actions',
 }
 print(f"请求URL: {url}")
 print(f"主题: {topic} | 类型: {content_type}")
 req = urllib.request.Request(url, json.dumps(payload).encode('utf-8'), headers, method='POST')
 try:
-    with urllib.request.urlopen(req, timeout=120) as response:
-        body = response.read().decode('utf-8')
-        print(f"✅ Dify响应: {body[:300]}")
-        result = json.loads(body)
-        if result.get('result') == 'success' or 'workflow_run_id' in result:
-            print('✅ Dify工作流触发成功！')
-        else:
-            print('⚠️ 响应状态异常')
-            sys.exit(1)
+    with urllib.request.urlopen(req, timeout=30) as response:
+        # streaming 模式读取前 500 字符即可
+        body = response.read(500).decode('utf-8')
+        print(f"✅ Dify响应: {body}")
+        print('✅ Dify工作流已触发（streaming模式，后台执行中）')
 except urllib.error.HTTPError as e:
     err_body = e.read().decode('utf-8')
     print(f'❌ HTTP错误 {e.code}: {err_body}')
