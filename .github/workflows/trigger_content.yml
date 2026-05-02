@@ -1,0 +1,103 @@
+name: 吉康公众号内容定时生成
+
+on:
+  schedule:
+    # 每周一、三、五 早上8:00（北京时间=UTC+8，所以这里写UTC 00:00）
+    - cron: '0 0 * * 1'   # 周一
+    - cron: '0 0 * * 3'   # 周三
+    - cron: '0 0 * * 5'   # 周五
+  # 也允许手动触发（测试用）
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: '内容主题'
+        required: true
+        default: '污泥低温干化技术进展'
+      content_type:
+        description: '内容类型(事件/技术/政策)'
+        required: true
+        default: '技术'
+      keywords:
+        description: '搜索关键词'
+        required: true
+        default: '污泥干化 热泵 节能'
+
+jobs:
+  trigger-dify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 读取当日计划
+        id: get_schedule
+        run: |
+          DAY=$(date +%A)
+          echo "Today is $DAY"
+          # 根据星期几读取对应计划
+          TOPIC=$(cat schedule.json | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          day = '$DAY'
+          for item in data['weekly_schedule']:
+              if item['day'] == day:
+                  print(item['topic'])
+                  break
+          ")
+          CONTENT_TYPE=$(cat schedule.json | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          for item in data['weekly_schedule']:
+              if item['day'] == '$DAY':
+                  print(item['content_type'])
+                  break
+          ")
+          KEYWORDS=$(cat schedule.json | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          for item in data['weekly_schedule']:
+              if item['day'] == '$DAY':
+                  print(item['keywords'])
+                  break
+          ")
+          echo "topic=$TOPIC" >> $GITHUB_OUTPUT
+          echo "content_type=$CONTENT_TYPE" >> $GITHUB_OUTPUT
+          echo "keywords=$KEYWORDS" >> $GITHUB_OUTPUT
+
+      - name: 触发Dify工作流
+        run: |
+          # 手动触发时用输入参数，定时触发时用计划文件
+          TOPIC="${{ github.event.inputs.topic || steps.get_schedule.outputs.topic }}"
+          CONTENT_TYPE="${{ github.event.inputs.content_type || steps.get_schedule.outputs.content_type }}"
+          KEYWORDS="${{ github.event.inputs.keywords || steps.get_schedule.outputs.keywords }}"
+          PUBLISH_DATE=$(date -d '+3 days' +%Y-%m-%d 2>/dev/null || date -v+3d +%Y-%m-%d)
+          
+          echo "触发内容生成：$TOPIC ($CONTENT_TYPE)"
+          
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "${{ secrets.DIFY_BASE_URL }}/v1/workflows/run" \
+            -H "Authorization: Bearer ${{ secrets.DIFY_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"inputs\": {
+                \"topic\": \"$TOPIC\",
+                \"content_type\": \"$CONTENT_TYPE\",
+                \"keywords\": \"$KEYWORDS\",
+                \"publish_date\": \"$PUBLISH_DATE\"
+              },
+              \"response_mode\": \"blocking\",
+              \"user\": \"github-actions\"
+            }")
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+          
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "❌ 触发失败！"
+            exit 1
+          else
+            echo "✅ 内容生成任务已触发成功！"
+          fi
