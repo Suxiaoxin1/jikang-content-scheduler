@@ -1,61 +1,59 @@
-- name: 触发Dify工作流
-  env:
-    DIFY_API_KEY: ${{ secrets.DIFY_API_KEY }}
-    DIFY_BASE_URL: ${{ secrets.DIFY_BASE_URL }}
-    TOPIC: ${{ github.event.inputs.topic || '污泥低温干化技术进展' }}
-    CONTENT_TYPE: ${{ github.event.inputs.content_type || '技术' }}
-    KEYWORDS: ${{ github.event.inputs.keywords || '污泥干化 热泵 节能' }}
-    PUBLISH_DATE: ${{ github.event.inputs.publish_date || '2026-05-05' }}
-  run: |
-    python3 << 'PYEOF'
-    import urllib.request
-    import json
-    import os
-    import datetime
-    import sys
-    
-    # 处理 publish_date
-    publish_date = os.environ.get('PUBLISH_DATE', '').strip()
-    default_placeholder = '2026-05-05'
-    if not publish_date or publish_date == default_placeholder:
-        publish_date = (datetime.datetime.now() + datetime.timedelta(days=3)).strftime('%Y-%m-%d')
-    
-    url = os.environ['DIFY_BASE_URL'] + '/v1/workflows/run'
-    api_key = os.environ['DIFY_API_KEY']
-    
-    headers = {
-        'Authorization': 'Bearer ' + api_key,
-        'Content-Type': 'application/json'
-    }
-    
-    data = {
-        'inputs': {
-            'topic': os.environ['TOPIC'],
-            'content_type': os.environ['CONTENT_TYPE'],
-            'keywords': os.environ['KEYWORDS'],
-            'publish_date': publish_date
-        },
-        'response_mode': 'blocking',
-        'user': 'github-actions'
-    }
-    
-    print(f"发送请求到: {url}")
-    print(f"主题: {data['inputs']['topic']}")
-    
-    req = urllib.request.Request(url, json.dumps(data).encode('utf-8'), headers, method='POST')
-    try:
-        with urllib.request.urlopen(req) as response:
-            result = response.read().decode('utf-8')
-            print(f"响应: {result}")
-            if '"result":"success"' in result or 'workflow_run_id' in result or 'answer' in result:
-                print('✅ 触发成功')
-            else:
-                print('⚠️ 响应异常')
-                sys.exit(1)
-    except urllib.error.HTTPError as e:
-        print(f'❌ HTTP错误 {e.code}: {e.read().decode()}')
-        sys.exit(1)
-    except Exception as e:
-        print(f'❌ 错误: {e}')
-        sys.exit(1)
-    PYEOF
+      - name: 触发Dify工作流
+        env:
+          DIFY_API_KEY: ${{ secrets.DIFY_API_KEY }}
+          DIFY_BASE_URL: ${{ secrets.DIFY_BASE_URL }}
+          TOPIC: ${{ github.event.inputs.topic || '污泥低温干化技术进展' }}
+          CONTENT_TYPE: ${{ github.event.inputs.content_type || '技术' }}
+          KEYWORDS: ${{ github.event.inputs.keywords || '污泥干化 热泵 节能' }}
+          PUBLISH_DATE: ${{ github.event.inputs.publish_date || '2026-05-05' }}
+        run: |
+          python3 << 'PYEOF'
+          import urllib.request
+          import json
+          import os
+          import datetime
+          
+          # 如果没有传入 publish_date，计算3天后的日期
+          publish_date = os.environ.get('PUBLISH_DATE')
+          if not publish_date or publish_date == '2026-05-05':
+              publish_date = (datetime.datetime.now() + datetime.timedelta(days=3)).strftime('%Y-%m-%d')
+          
+          url = os.environ['DIFY_BASE_URL'] + '/v1/workflows/run'
+          api_key = os.environ['DIFY_API_KEY']
+          
+          headers = {
+              'Authorization': 'Bearer ' + api_key,
+              'Content-Type': 'application/json'
+          }
+          
+          data = {
+              'inputs': {
+                  'topic': os.environ['TOPIC'],
+                  'content_type': os.environ['CONTENT_TYPE'],
+                  'keywords': os.environ['KEYWORDS'],
+                  'publish_date': publish_date
+              },
+              'response_mode': 'blocking',
+              'user': 'github-actions'
+          }
+          
+          print(f"发送请求到: {url}")
+          print(f"主题: {data['inputs']['topic']}")
+          
+          req = urllib.request.Request(url, json.dumps(data).encode('utf-8'), headers, method='POST')
+          try:
+              with urllib.request.urlopen(req) as response:
+                  result = response.read().decode('utf-8')
+                  print(f"响应: {result}")
+                  if '"result":"success"' in result or 'workflow_run_id' in result or 'answer' in result:
+                      print('✅ 触发成功')
+                  else:
+                      print('⚠️ 响应异常')
+                      exit(1)
+          except urllib.error.HTTPError as e:
+              print(f'❌ HTTP错误 {e.code}: {e.read().decode()}')
+              exit(1)
+          except Exception as e:
+              print(f'❌ 错误: {e}')
+              exit(1)
+          PYEOF
