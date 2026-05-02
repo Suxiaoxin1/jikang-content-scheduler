@@ -1,0 +1,25 @@
+{
+  "weekly_schedule": [
+    {
+      "day": "Monday",
+      "topic": "本周污泥处理行业动态汇总",
+      "content_type": "事件",
+      "keywords": "污泥处理 热泵干化 行业动态 环保",
+      "publish_date": "每周一"
+    },
+    {
+      "day": "Wednesday",
+      "topic": "污泥低温干化技术原理解析",
+      "content_type": "技术",
+      "keywords": "污泥干化 节能 热泵 低温 涡旋",
+      "publish_date": "每周三"
+    },
+    {
+      "day": "Friday",
+      "topic": "环保政策追踪：污泥处置最新标准解读",
+      "content_type": "政策",
+      "keywords": "污泥处置 环保标准 政策法规 2026 生态环境部",
+      "publish_date": "每周五"
+    }
+  ]
+}
