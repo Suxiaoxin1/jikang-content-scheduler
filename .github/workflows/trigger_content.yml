@@ -2,11 +2,9 @@ name: 吉康公众号内容定时生成
 
 on:
   schedule:
-    # 每周一、三、五 早上8:00（北京时间=UTC+8，所以这里写UTC 00:00）
-    - cron: '0 0 * * 1'   # 周一
-    - cron: '0 0 * * 3'   # 周三
-    - cron: '0 0 * * 5'   # 周五
-  # 也允许手动触发（测试用）
+    - cron: '0 0 * * 1'
+    - cron: '0 0 * * 3'
+    - cron: '0 0 * * 5'
   workflow_dispatch:
     inputs:
       topic:
@@ -26,83 +24,70 @@ jobs:
   trigger-dify:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
+      
       - name: 读取当日计划
-        id: get_schedule
+        id: plan
         run: |
           DAY=$(date +%A)
-          echo "Today is $DAY"
-          # 根据星期几读取对应计划
-          TOPIC=$(cat schedule.json | python3 -c "
-          import json, sys
-          data = json.load(sys.stdin)
-          day = '$DAY'
+          python3 << 'PYEOF'
+          import json
+          with open('schedule.json') as f:
+              data = json.load(f)
+          day = '${{ env.DAY }}'
           for item in data['weekly_schedule']:
               if item['day'] == day:
-                  print(item['topic'])
+                  print(f"topic={item['topic']}")
+                  print(f"content_type={item['content_type']}")
+                  print(f"keywords={item['keywords']}")
                   break
-          ")
-          CONTENT_TYPE=$(cat schedule.json | python3 -c "
-          import json, sys
-          data = json.load(sys.stdin)
-          for item in data['weekly_schedule']:
-              if item['day'] == '$DAY':
-                  print(item['content_type'])
-                  break
-          ")
-          KEYWORDS=$(cat schedule.json | python3 -c "
-          import json, sys
-          data = json.load(sys.stdin)
-          for item in data['weekly_schedule']:
-              if item['day'] == '$DAY':
-                  print(item['keywords'])
-                  break
-          ")
-          echo "topic=$TOPIC" >> $GITHUB_OUTPUT
-          echo "content_type=$CONTENT_TYPE" >> $GITHUB_OUTPUT
-          echo "keywords=$KEYWORDS" >> $GITHUB_OUTPUT
-          
+          PYEOF
+        env:
+          DAY: ${{ github.event.inputs.topic && 'Manual' || steps.plan.outputs.day }}
+
       - name: 触发Dify工作流
         run: |
-          TOPIC="${{ github.event.inputs.topic || steps.get_schedule.outputs.topic }}"
-          CONTENT_TYPE="${{ github.event.inputs.content_type || steps.get_schedule.outputs.content_type }}"
-          KEYWORDS="${{ github.event.inputs.keywords || steps.get_schedule.outputs.keywords }}"
+          TOPIC="${{ github.event.inputs.topic || '污泥低温干化技术进展' }}"
+          CONTENT_TYPE="${{ github.event.inputs.content_type || '技术' }}"
+          KEYWORDS="${{ github.event.inputs.keywords || '污泥干化 热泵 节能' }}"
           PUBLISH_DATE=$(date -d '+3 days' +%Y-%m-%d 2>/dev/null || date -v+3d +%Y-%m-%d)
           
-          # 构造JSON数据
-          JSON_DATA=$(cat <<EOF
-          {
-            "inputs": {
-              "topic": "$TOPIC",
-              "content_type": "$CONTENT_TYPE",
-              "keywords": "$KEYWORDS",
-              "publish_date": "$PUBLISH_DATE"
-            },
-            "response_mode": "blocking",
-            "user": "github-actions"
-          }
-          EOF
-          )
-          
-          echo "📌 触发内容生成"
           echo "主题: $TOPIC"
           echo "类型: $CONTENT_TYPE"
           
-          # 发送请求
-          RESPONSE=$(curl -s -X POST "${{ secrets.DIFY_BASE_URL }}/v1/workflows/run" \
-            -H "Authorization: Bearer ${{ secrets.DIFY_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d "$JSON_DATA")
+          # 使用 Python 发送请求，避免 shell 转义问题
+          python3 << 'PYEOF'
+          import urllib.request
+          import json
+          import os
           
-          echo "📊 Dify响应: $RESPONSE"
+          url = "${{ secrets.DIFY_BASE_URL }}/v1/workflows/run"
+          headers = {
+              "Authorization": "Bearer ${{ secrets.DIFY_API_KEY }}",
+              "Content-Type": "application/json"
+          }
+          data = {
+              "inputs": {
+                  "topic": os.environ.get("TOPIC"),
+                  "content_type": os.environ.get("CONTENT_TYPE"),
+                  "keywords": os.environ.get("KEYWORDS"),
+                  "publish_date": os.environ.get("PUBLISH_DATE")
+              },
+              "response_mode": "blocking",
+              "user": "github-actions"
+          }
           
-          # 检查是否成功
-          if echo "$RESPONSE" | grep -q '"result":"success"'; then
-            echo "✅ 内容生成任务已成功触发！"
-          else
-            echo "❌ 触发失败"
-            exit 1
-          fi
-
+          req = urllib.request.Request(url, json.dumps(data).encode(), headers, method="POST")
+          try:
+              with urllib.request.urlopen(req) as response:
+                  print(response.read().decode())
+                  print("✅ 触发成功")
+          except Exception as e:
+              print(f"❌ 错误: {e}")
+              exit(1)
+          PYEOF
+        env:
+          TOPIC: ${{ github.event.inputs.topic }}
+          CONTENT_TYPE: ${{ github.event.inputs.content_type }}
+          KEYWORDS: ${{ github.event.inputs.keywords }}
+          PUBLISH_DATE: ${{ steps.plan.outputs.publish_date }}
