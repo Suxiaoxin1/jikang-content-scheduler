@@ -1,59 +1,101 @@
+name: 吉康公众号内容定时生成
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'
+    - cron: '0 0 * * 3'
+    - cron: '0 0 * * 5'
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: '内容主题'
+        required: true
+        default: '污泥低温干化技术进展'
+      content_type:
+        description: '内容类型(事件/技术/政策)'
+        required: true
+        default: '技术'
+      keywords:
+        description: '搜索关键词'
+        required: true
+        default: '污泥干化 热泵 节能'
+      publish_date:
+        description: '计划发布日期(YYYY-MM-DD)'
+        required: false
+
+jobs:
+  trigger-dify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
       - name: 触发Dify工作流
         env:
           DIFY_API_KEY: ${{ secrets.DIFY_API_KEY }}
           DIFY_BASE_URL: ${{ secrets.DIFY_BASE_URL }}
-          TOPIC: ${{ github.event.inputs.topic || '污泥低温干化技术进展' }}
-          CONTENT_TYPE: ${{ github.event.inputs.content_type || '技术' }}
-          KEYWORDS: ${{ github.event.inputs.keywords || '污泥干化 热泵 节能' }}
-          PUBLISH_DATE: ${{ github.event.inputs.publish_date || '2026-05-05' }}
+          INPUT_TOPIC: ${{ github.event.inputs.topic }}
+          INPUT_CONTENT_TYPE: ${{ github.event.inputs.content_type }}
+          INPUT_KEYWORDS: ${{ github.event.inputs.keywords }}
+          INPUT_PUBLISH_DATE: ${{ github.event.inputs.publish_date }}
         run: |
           python3 << 'PYEOF'
           import urllib.request
           import json
           import os
           import datetime
-          
-          # 如果没有传入 publish_date，计算3天后的日期
-          publish_date = os.environ.get('PUBLISH_DATE')
-          if not publish_date or publish_date == '2026-05-05':
+          import sys
+
+          input_topic = os.environ.get('INPUT_TOPIC', '')
+
+          if input_topic:
+              topic = input_topic
+              content_type = os.environ.get('INPUT_CONTENT_TYPE', '技术')
+              keywords = os.environ.get('INPUT_KEYWORDS', '')
+              publish_date = os.environ.get('INPUT_PUBLISH_DATE', '')
+              print(f"手动触发模式: {topic}")
+          else:
+              print("定时触发模式，读取schedule.json...")
+              with open('schedule.json') as f:
+                  data = json.load(f)
+              day_map = {'Monday':'Monday','Tuesday':'Tuesday','Wednesday':'Wednesday','Thursday':'Thursday','Friday':'Friday','Saturday':'Saturday','Sunday':'Sunday'}
+              today = datetime.datetime.now().strftime('%A')
+              topic = content_type = keywords = None
+              for item in data['weekly_schedule']:
+                  if item['day'] == today:
+                      topic = item['topic']
+                      content_type = item['content_type']
+                      keywords = item['keywords']
+                      break
+              if not topic:
+                  print(f"未找到 {today} 的发布计划，跳过")
+                  sys.exit(0)
+              publish_date = ''
+              print(f"定时触发: {topic}")
+
+          if not publish_date:
               publish_date = (datetime.datetime.now() + datetime.timedelta(days=3)).strftime('%Y-%m-%d')
-          
-          url = os.environ['DIFY_BASE_URL'] + '/v1/workflows/run'
+
           api_key = os.environ['DIFY_API_KEY']
-          
-          headers = {
-              'Authorization': 'Bearer ' + api_key,
-              'Content-Type': 'application/json'
-          }
-          
-          data = {
-              'inputs': {
-                  'topic': os.environ['TOPIC'],
-                  'content_type': os.environ['CONTENT_TYPE'],
-                  'keywords': os.environ['KEYWORDS'],
-                  'publish_date': publish_date
-              },
+          base_url = os.environ['DIFY_BASE_URL']
+          url = base_url.rstrip('/') + '/v1/workflows/run'
+          headers = {'Authorization': 'Bearer ' + api_key, 'Content-Type': 'application/json'}
+          payload = {
+              'inputs': {'topic': topic, 'content_type': content_type, 'keywords': keywords, 'publish_date': publish_date},
               'response_mode': 'blocking',
               'user': 'github-actions'
           }
-          
-          print(f"发送请求到: {url}")
-          print(f"主题: {data['inputs']['topic']}")
-          
-          req = urllib.request.Request(url, json.dumps(data).encode('utf-8'), headers, method='POST')
+          print(f"请求URL: {url}")
+          req = urllib.request.Request(url, json.dumps(payload).encode('utf-8'), headers, method='POST')
           try:
-              with urllib.request.urlopen(req) as response:
-                  result = response.read().decode('utf-8')
-                  print(f"响应: {result}")
-                  if '"result":"success"' in result or 'workflow_run_id' in result or 'answer' in result:
-                      print('✅ 触发成功')
+              with urllib.request.urlopen(req, timeout=120) as response:
+                  body = response.read().decode('utf-8')
+                  print(f"响应: {body}")
+                  result = json.loads(body)
+                  if result.get('result') == 'success' or 'workflow_run_id' in result:
+                      print('✅ Dify工作流触发成功！')
                   else:
                       print('⚠️ 响应异常')
-                      exit(1)
-          except urllib.error.HTTPError as e:
-              print(f'❌ HTTP错误 {e.code}: {e.read().decode()}')
-              exit(1)
           except Exception as e:
               print(f'❌ 错误: {e}')
-              exit(1)
+              sys.exit(1)
           PYEOF
