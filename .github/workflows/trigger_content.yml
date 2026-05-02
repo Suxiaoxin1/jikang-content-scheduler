@@ -63,41 +63,46 @@ jobs:
           echo "topic=$TOPIC" >> $GITHUB_OUTPUT
           echo "content_type=$CONTENT_TYPE" >> $GITHUB_OUTPUT
           echo "keywords=$KEYWORDS" >> $GITHUB_OUTPUT
-
+          
       - name: 触发Dify工作流
         run: |
-          # 手动触发时用输入参数，定时触发时用计划文件
           TOPIC="${{ github.event.inputs.topic || steps.get_schedule.outputs.topic }}"
           CONTENT_TYPE="${{ github.event.inputs.content_type || steps.get_schedule.outputs.content_type }}"
           KEYWORDS="${{ github.event.inputs.keywords || steps.get_schedule.outputs.keywords }}"
           PUBLISH_DATE=$(date -d '+3 days' +%Y-%m-%d 2>/dev/null || date -v+3d +%Y-%m-%d)
           
-          echo "触发内容生成：$TOPIC ($CONTENT_TYPE)"
+          # 构造JSON数据
+          JSON_DATA=$(cat <<EOF
+          {
+            "inputs": {
+              "topic": "$TOPIC",
+              "content_type": "$CONTENT_TYPE",
+              "keywords": "$KEYWORDS",
+              "publish_date": "$PUBLISH_DATE"
+            },
+            "response_mode": "blocking",
+            "user": "github-actions"
+          }
+          EOF
+          )
           
-          RESPONSE=$(curl -s -w "\n%{http_code}" \
-            -X POST "${{ secrets.DIFY_BASE_URL }}/v1/workflows/run" \
+          echo "📌 触发内容生成"
+          echo "主题: $TOPIC"
+          echo "类型: $CONTENT_TYPE"
+          
+          # 发送请求
+          RESPONSE=$(curl -s -X POST "${{ secrets.DIFY_BASE_URL }}/v1/workflows/run" \
             -H "Authorization: Bearer ${{ secrets.DIFY_API_KEY }}" \
             -H "Content-Type: application/json" \
-            -d "{
-              \"inputs\": {
-                \"topic\": \"$TOPIC\",
-                \"content_type\": \"$CONTENT_TYPE\",
-                \"keywords\": \"$KEYWORDS\",
-                \"publish_date\": \"$PUBLISH_DATE\"
-              },
-              \"response_mode\": \"blocking\",
-              \"user\": \"github-actions\"
-            }")
+            -d "$JSON_DATA")
           
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -1)
+          echo "📊 Dify响应: $RESPONSE"
           
-          echo "HTTP Status: $HTTP_CODE"
-          echo "Response: $BODY"
-          
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "❌ 触发失败！"
-            exit 1
+          # 检查是否成功
+          if echo "$RESPONSE" | grep -q '"result":"success"'; then
+            echo "✅ 内容生成任务已成功触发！"
           else
-            echo "✅ 内容生成任务已触发成功！"
+            echo "❌ 触发失败"
+            exit 1
           fi
+
