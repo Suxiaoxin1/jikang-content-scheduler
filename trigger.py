@@ -39,6 +39,7 @@ url = base_url.rstrip('/') + '/v1/workflows/run'
 headers = {
     'Authorization': 'Bearer ' + api_key,
     'Content-Type': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.0',  # 新增
 }
 payload = {
     'inputs': {
