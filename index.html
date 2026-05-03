@@ -378,17 +378,18 @@
                 })
             });
 
-            var result;
-            try { result = await response.json(); } catch(e) { result = {}; }
+            // 先尝试读文本，再尝试解析 JSON
+            var responseText = await response.text();
+            var result = {};
+            try { result = JSON.parse(responseText); } catch(e) { result = { message: responseText }; }
 
             if (response.ok) {
                 document.getElementById('testResult').textContent = '连接成功！';
                 document.getElementById('testResult').style.color = 'green';
                 showToast('连接成功！', 'success');
             } else {
-                var errMsg = (result && result.message) ? result.message : 'HTTP ' + response.status;
-                document.getElementById('testResult').textContent = '失败：' + errMsg;
-                document.getElementById('testResult').style.color = 'red';
+                var errMsg = result.message || result.error || ('HTTP ' + response.status + ' - ' + responseText.substring(0, 100));
+                document.getElementById('testResult').innerHTML = '<span style="color:red">失败：' + errMsg + '</span>';
                 showToast('连接失败：' + errMsg, 'error');
             }
         } catch(e) {
