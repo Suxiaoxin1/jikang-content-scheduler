@@ -54,19 +54,164 @@
             .left-sidebar, .right-sidebar { width: 100%; max-height: 40vh; border: none; border-bottom: 1px solid #e5e7eb; }
             .center-content { height: auto; flex: 1; }
         }
-        /* Markdown 样式 */
-        .prose h1 { font-size: 1.5rem; font-weight: bold; color: var(--primary); margin: 1rem 0 0.5rem; }
-        .prose h2 { font-size: 1.25rem; font-weight: bold; color: var(--primary); margin: 1rem 0 0.5rem; border-bottom: 1px solid #eee; padding-bottom: 0.25rem; }
-        .prose h3 { font-size: 1.1rem; font-weight: bold; margin: 0.75rem 0 0.25rem; }
-        .prose p { margin: 0.5rem 0; line-height: 1.8; }
-        .prose ul, .prose ol { margin: 0.5rem 0; padding-left: 1.5rem; }
-        .prose li { margin: 0.25rem 0; line-height: 1.8; }
-        .prose code { background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.875rem; }
-        .prose pre { background: #1f2937; color: #f9fafb; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin: 1rem 0; }
-        .prose pre code { background: none; padding: 0; color: inherit; }
-        .prose blockquote { border-left: 4px solid var(--primary); padding-left: 1rem; color: #6b7280; margin: 1rem 0; }
-        .prose strong { color: var(--accent); }
-        .prose hr { border: none; border-top: 1px solid #e5e7eb; margin: 1.5rem 0; }
+        /* ========== 公众号文案 — 现行常规排版 ========== */
+        .article-body {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 20px 16px 40px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.06);
+        }
+        .article-body h1 {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            text-align: center;
+            margin: 0 0 1.2rem;
+            line-height: 1.4;
+            letter-spacing: 0.02em;
+        }
+        .article-body h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1B6CA8;
+            margin: 2rem 0 0.8rem;
+            padding-left: 0.6rem;
+            border-left: 4px solid #1B6CA8;
+            line-height: 1.5;
+        }
+        .article-body h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin: 1.5rem 0 0.6rem;
+        }
+        .article-body p {
+            margin: 1.2rem 0;
+            line-height: 2;
+            color: #3d3d3d;
+            font-size: 15px;
+            text-align: justify;
+        }
+        .article-body ul, .article-body ol {
+            margin: 1rem 0;
+            padding-left: 1.2rem;
+        }
+        .article-body li {
+            margin: 0.6rem 0;
+            line-height: 2;
+            color: #3d3d3d;
+            font-size: 15px;
+        }
+        .article-body blockquote {
+            margin: 1.5rem 0;
+            padding: 12px 16px;
+            background: #f7f9fc;
+            border-left: 4px solid #1B6CA8;
+            border-radius: 0 6px 6px 0;
+            color: #555;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .article-body strong {
+            color: #1B6CA8;
+            font-weight: 600;
+        }
+        .article-body em {
+            color: #FF6B2B;
+            font-style: normal;
+            font-weight: 500;
+        }
+        .article-body hr {
+            margin: 2rem auto;
+            border: none;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #ddd, transparent);
+            width: 60%;
+        }
+        .article-body code {
+            background: #f0f4f8;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #d63384;
+        }
+        .article-body pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .article-body pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+        /* 公众号文末署名 */
+        .article-footer {
+            margin-top: 2.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #eee;
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        /* ========== 评估报告卡片 ========== */
+        .eval-card {
+            max-width: 680px;
+            margin: 2rem auto 0;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.06);
+            overflow: hidden;
+        }
+        .eval-card-header {
+            background: linear-gradient(135deg, #1B6CA8 0%, #2563eb 100%);
+            color: #fff;
+            padding: 14px 20px;
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .eval-card-body { padding: 20px; }
+        .eval-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            margin: 16px 0 8px;
+            padding-left: 8px;
+            border-left: 3px solid #1B6CA8;
+        }
+        .eval-section-title:first-child { margin-top: 0; }
+        /* 分区标签 */
+        .zone-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+            background: var(--primary);
+            padding: 4px 12px;
+            border-radius: 0 0 8px 0;
+            position: absolute;
+            top: 0; left: 0;
+        }
+        .zone-container {
+            position: relative;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
     </style>
 </head>
 <body>
@@ -187,9 +332,19 @@
                     </button>
                 </div>
 
-                <div id="renderedContent" class="prose max-w-none"></div>
-                <div id="sourceContent" class="hidden">
-                    <pre id="markdownSource" class="bg-gray-50 p-4 rounded-lg text-sm overflow-x-auto whitespace-pre-wrap"></pre>
+                <!-- 分区一：公众号文案 -->
+                <div class="zone-container">
+                    <span class="zone-label">📄 公众号文案</span>
+                    <div id="renderedContent" class="article-body" style="margin-top:28px;"></div>
+                    <div id="sourceContent" class="hidden" style="margin-top:28px;">
+                        <pre id="markdownSource" class="bg-gray-50 p-4 rounded-lg text-sm overflow-x-auto whitespace-pre-wrap"></pre>
+                    </div>
+                </div>
+
+                <!-- 分区二：评估报告 -->
+                <div class="zone-container" style="margin-top:2rem;">
+                    <span class="zone-label" style="background:#FF6B2B;">📊 质量评估报告</span>
+                    <div id="evaluationZone" style="padding:16px 20px 20px;"></div>
                 </div>
 
                 <div class="mt-6 pt-4 border-t text-sm text-gray-500 flex gap-4">
@@ -571,6 +726,37 @@
             '</div><div class="mt-3 pt-2 border-t"><p class="text-xs text-gray-600">改进建议：建议结尾增加 CTA 引导语，可加入具体数据案例提升说服力</p></div>';
 
         document.getElementById('evaluationReport').innerHTML = html;
+        // 同时渲染到中间分区
+        var zoneHtml = '<div class="eval-card-body">' +
+            '<div class="mb-4 text-center">' +
+            '  <div class="relative inline-block w-20 h-20">' +
+            '    <svg class="w-20 h-20" style="transform:rotate(-90deg)">' +
+            '      <circle cx="40" cy="40" r="36" fill="none" stroke="#e5e7eb" stroke-width="6"/>' +
+            '      <circle cx="40" cy="40" r="36" fill="none" stroke="' + color + '" stroke-width="6"' +
+            '        stroke-dasharray="' + (total * 2.26) + ' 226" stroke-linecap="round"/>' +
+            '    </svg>' +
+            '    <div class="absolute inset-0 flex items-center justify-center">' +
+            '      <span class="text-2xl font-bold" style="color:' + color + '">' + total + '</span>' +
+            '    </div>' +
+            '  </div>' +
+            '  <p class="text-xs text-gray-500 mt-1">综合评分</p>' +
+            '</div>' +
+            '<div class="space-y-3">' +
+            Object.keys(scores).map(function(k) {
+                var v = scores[k];
+                var barColor = v >= 80 ? '#4CAF50' : v >= 60 ? '#FF9800' : '#f44336';
+                return '<div><div class="flex items-center justify-between mb-1"><span class="text-xs text-gray-600">' + k + '</span><span class="text-xs font-bold" style="color:' + barColor + '">' + v + '分</span></div>' +
+                    '<div class="h-2 bg-gray-100 rounded-full overflow-hidden"><div style="width:' + v + '%;height:100%;background:' + barColor + ';border-radius:999px;transition:width .6s ease"></div></div></div>';
+            }).join('') +
+            '</div>' +
+            '<div class="mt-4 pt-3 border-t border-gray-100">' +
+            '  <p class="text-xs text-gray-500 leading-relaxed">💡 改进建议：结尾可增加 CTA 引导语，加入具体数据案例提升说服力；标题可加入数字元素提高点击率。</p>' +
+            '</div>' +
+            '<div class="mt-3 text-xs text-gray-400 flex gap-4">' +
+            '  <span>✅ 通过</span><span>⚠️ 建议优化</span><span>❌ 需修改</span>' +
+            '</div>' +
+            '</div>';
+        document.getElementById('evaluationZone').innerHTML = zoneHtml;
     }
 
     // ========== 来源（模拟）==========
